@@ -6,7 +6,7 @@ from pathlib import Path
 import typer
 
 from .actions import OutputActions
-from .audio import AudioRecorder
+from .audio import AudioRecorder, SystemSoundPlayer
 from .config import AppConfig
 from .hotkey import HotkeyListener, PeriodicMonitor
 from .transcription import WhisperTranscriber
@@ -75,6 +75,7 @@ def _configure_logging(verbose: bool) -> None:
 def _build_workflow(config: AppConfig) -> DictationWorkflow:
     recorder = AudioRecorder(sample_rate=config.sample_rate, channels=config.channels)
     transcriber = WhisperTranscriber(model_name=config.model_name, device=config.device)
+    sound_player = SystemSoundPlayer()
     actions = OutputActions(
         use_clipboard=config.clipboard,
         auto_paste=config.auto_paste,
@@ -82,7 +83,7 @@ def _build_workflow(config: AppConfig) -> DictationWorkflow:
         log_transcripts=config.log_transcripts,
         log_path=config.log_path,
     )
-    return DictationWorkflow(config, recorder, transcriber, actions)
+    return DictationWorkflow(config, recorder, transcriber, actions, sound_player=sound_player)
 
 
 def run() -> None:

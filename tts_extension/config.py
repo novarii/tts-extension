@@ -18,7 +18,7 @@ class AppConfig:
     channels: int = 1
     model_name: str = "tiny.en"
     device: str = "auto"
-    max_recording_seconds: float = 45.0
+    max_recording_seconds: float = 120.0
     clipboard: bool = True
     auto_paste: bool = True
     type_characters: bool = False

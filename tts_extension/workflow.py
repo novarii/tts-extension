@@ -6,7 +6,7 @@ import threading
 import numpy as np
 
 from .actions import OutputActions
-from .audio import AudioRecorder
+from .audio import AudioRecorder, SystemSoundPlayer
 from .config import AppConfig
 from .transcription import WhisperTranscriber
 
@@ -22,11 +22,13 @@ class DictationWorkflow:
         recorder: AudioRecorder,
         transcriber: WhisperTranscriber,
         actions: OutputActions,
+        sound_player: SystemSoundPlayer | None = None,
     ) -> None:
         self.config = config
         self.recorder = recorder
         self.transcriber = transcriber
         self.actions = actions
+        self.sound_player = sound_player
         self._lock = threading.Lock()
         self._is_recording = False
 
@@ -40,6 +42,8 @@ class DictationWorkflow:
     def _start(self) -> None:
         logger.info("Recording started — speak now")
         self.recorder.start()
+        if self.sound_player:
+            self.sound_player.play_toggle()
         self._is_recording = True
 
     def _complete(self) -> None:
@@ -49,6 +53,8 @@ class DictationWorkflow:
         if audio.size == 0:
             logger.warning("No audio captured; skipping transcription")
             return
+        if self.sound_player:
+            self.sound_player.play_transcribe()
         text = self.transcriber.transcribe(audio, self.config.sample_rate)
         self.actions.deliver(text)
 

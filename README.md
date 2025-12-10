@@ -23,7 +23,7 @@ uv add --dev pytest
 ```bash
 uv run tts-extension listen --verbose
 ```
-Hold `cmd+shift+;` (configurable) to start recording, release to transcribe, and the text will paste where your cursor is. Use `Ctrl+C` to exit.
+Hold `cmd+shift+;` (configurable) to start recording, release to transcribe, and the text will paste where your cursor is. Use `Ctrl+C` to exit. You'll hear the macOS `Morse` cue when recording starts and again when transcription begins (falls back silently if system sounds aren't available).
 
 ### Configuration
 Create `configs/config.yaml` to override defaults:
@@ -35,7 +35,7 @@ clipboard: true
 auto_paste: true
 sample_rate: 16000
 channels: 1
-max_recording_seconds: 45
+max_recording_seconds: 120
 log_transcripts: false
 log_path: "~/Library/Logs/tts-extension/transcripts.log"
 ```

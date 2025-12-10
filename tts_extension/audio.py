@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import logging
+import shutil
+import subprocess
 import threading
 import time
+from pathlib import Path
 from typing import Optional
 
 import numpy as np
@@ -79,3 +82,52 @@ class AudioRecorder:
         if self.channels == 1:
             return frames.reshape(-1)
         return np.mean(frames, axis=1)
+
+
+class SystemSoundPlayer:
+    """Lightweight player for macOS system alert sounds."""
+
+    _SOUND_DIR = Path("/System/Library/Sounds")
+
+    def __init__(
+        self,
+        toggle_sound: str = "Morse",
+        transcribe_sound: str = "Morse",
+        enabled: bool = True,
+    ) -> None:
+        self.toggle_sound = toggle_sound
+        self.transcribe_sound = transcribe_sound
+        self.enabled = (
+            enabled
+            and shutil.which("afplay") is not None
+            and self._SOUND_DIR.exists()
+        )
+        if not self.enabled:
+            logger.debug("System sounds disabled (afplay missing or unsupported platform)")
+
+    def play_toggle(self) -> None:
+        self._play(self.toggle_sound)
+
+    def play_transcribe(self) -> None:
+        self._play(self.transcribe_sound)
+
+    def _play(self, sound_name: str) -> None:
+        if not self.enabled:
+            return
+        path = self._SOUND_DIR / f"{sound_name}.aiff"
+        if not path.exists():
+            logger.debug("System sound file %s not found", path)
+            return
+        threading.Thread(target=self._run_player, args=(path,), daemon=True).start()
+
+    @staticmethod
+    def _run_player(path: Path) -> None:
+        try:
+            subprocess.run(
+                ["afplay", str(path)],
+                check=False,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except Exception:
+            logger.debug("Failed to play system sound %s", path, exc_info=True)

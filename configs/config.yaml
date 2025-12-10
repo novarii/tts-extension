@@ -3,7 +3,7 @@ model_name: "tiny.en"
 device: "auto"
 sample_rate: 16000
 channels: 1
-max_recording_seconds: 45
+max_recording_seconds: 120
 clipboard: true
 auto_paste: true
 type_characters: false

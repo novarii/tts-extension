@@ -13,15 +13,18 @@ DEFAULT_CONFIG_PATH = Path("configs/config.yaml")
 class AppConfig:
     """Application configuration with sensible defaults for local use."""
 
-    shortcut: str = "<cmd>+<shift>+;"
+    shortcut: str | list[str] = "<fn>"
+    hotkey_mode: str = "hold"
     sample_rate: int = 16000
     channels: int = 1
-    model_name: str = "tiny.en"
+    model_name: str = "small.en"
     device: str = "auto"
     max_recording_seconds: float = 120.0
     clipboard: bool = True
     auto_paste: bool = True
     type_characters: bool = False
+    duck_audio: bool = False
+    duck_volume: int = 20
     log_transcripts: bool = False
     log_path: Path = Path("logs/transcripts.log")
 
@@ -59,8 +62,21 @@ class AppConfig:
         normalized: Dict[str, Any] = {}
         for key, value in data.items():
             normalized[key] = value
+        if "shortcut" in normalized:
+            shortcut_value = normalized["shortcut"]
+            if isinstance(shortcut_value, list):
+                normalized["shortcut"] = [
+                    str(item).strip() for item in shortcut_value if str(item).strip()
+                ]
+            elif isinstance(shortcut_value, str):
+                normalized["shortcut"] = shortcut_value.strip()
         if "log_path" in normalized and not isinstance(normalized["log_path"], Path):
             normalized["log_path"] = Path(normalized["log_path"])
+        if "duck_volume" in normalized and not isinstance(normalized["duck_volume"], int):
+            try:
+                normalized["duck_volume"] = int(normalized["duck_volume"])
+            except (TypeError, ValueError):
+                pass
         return normalized
 
     def ensure_log_dir(self) -> None:

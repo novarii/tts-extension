@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import threading
 import time
+import sys
 from pathlib import Path
 from typing import Optional
 
@@ -131,3 +132,68 @@ class SystemSoundPlayer:
             )
         except Exception:
             logger.debug("Failed to play system sound %s", path, exc_info=True)
+
+
+class SystemAudioDucker:
+    """Reduce system output volume while recording on macOS."""
+
+    def __init__(self, enabled: bool = False) -> None:
+        self.enabled = (
+            enabled
+            and sys.platform == "darwin"
+            and shutil.which("osascript") is not None
+        )
+        self._previous_volume: int | None = None
+        if not self.enabled:
+            logger.debug("System audio ducking disabled or unsupported platform")
+
+    def duck(self, target_volume: int) -> None:
+        if not self.enabled or self._previous_volume is not None:
+            return
+        current = self._get_volume()
+        if current is None:
+            return
+        self._previous_volume = current
+        self._set_volume(self._clamp(target_volume))
+
+    def restore(self) -> None:
+        if not self.enabled or self._previous_volume is None:
+            return
+        self._set_volume(self._previous_volume)
+        self._previous_volume = None
+
+    @staticmethod
+    def _clamp(volume: int) -> int:
+        return max(0, min(100, volume))
+
+    def _get_volume(self) -> int | None:
+        try:
+            result = subprocess.run(
+                ["osascript", "-e", "output volume of (get volume settings)"],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+        except Exception:
+            logger.debug("Failed to read system volume", exc_info=True)
+            return None
+        if result.returncode != 0:
+            logger.debug("osascript returned non-zero while reading volume")
+            return None
+        output = (result.stdout or "").strip()
+        try:
+            return int(output)
+        except ValueError:
+            logger.debug("Unexpected volume output: %s", output)
+            return None
+
+    def _set_volume(self, volume: int) -> None:
+        try:
+            subprocess.run(
+                ["osascript", "-e", f"set volume output volume {volume}"],
+                check=False,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except Exception:
+            logger.debug("Failed to set system volume", exc_info=True)

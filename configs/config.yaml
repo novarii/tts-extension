@@ -1,5 +1,8 @@
-shortcut: "<cmd>+<shift>+;"
-model_name: "tiny.en"
+shortcut:
+  - "<fn>"
+  - "<num_lock>"
+hotkey_mode: "hold"
+model_name: "small.en"
 device: "auto"
 sample_rate: 16000
 channels: 1
@@ -7,5 +10,7 @@ max_recording_seconds: 120
 clipboard: true
 auto_paste: true
 type_characters: false
+duck_audio: false
+duck_volume: 20
 log_transcripts: false
 log_path: "logs/transcripts.log"

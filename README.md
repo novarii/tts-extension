@@ -23,12 +23,15 @@ uv add --dev pytest
 ```bash
 uv run tts-extension listen --verbose
 ```
-Hold `cmd+shift+;` (configurable) to start recording, release to transcribe, and the text will paste where your cursor is. Use `Ctrl+C` to exit. You'll hear the macOS `Morse` cue when recording starts and again when transcription begins (falls back silently if system sounds aren't available).
+Hold `fn` (configurable) to start recording, release to transcribe, and the text will paste where your cursor is. Use `Ctrl+C` to exit. You'll hear the macOS `Morse` cue when recording starts and again when transcription begins (falls back silently if system sounds aren't available).
 
 ### Configuration
 Create `configs/config.yaml` to override defaults:
 ```yaml
-shortcut: "<cmd>+<shift>+;"
+shortcut:
+  - "<fn>"
+  - "<num_lock>"
+hotkey_mode: "hold"
 model_name: "small.en"
 device: "auto"
 clipboard: true
@@ -36,12 +39,19 @@ auto_paste: true
 sample_rate: 16000
 channels: 1
 max_recording_seconds: 120
+duck_audio: false
+duck_volume: 20
 log_transcripts: false
 log_path: "~/Library/Logs/tts-extension/transcripts.log"
 ```
 Run with `uv run tts-extension listen -c configs/config.yaml`.
+Set `hotkey_mode` to `hold` (press/release) or `toggle` (press once to start/stop).
 
 ### Permissions & Tips
 - On first run, macOS will request microphone access; grant it via System Settings → Privacy & Security → Microphone.
 - To allow simulated keystrokes/Command+V, add your terminal (or packaged app) under Accessibility → Input Monitoring.
+- Fn-only hotkeys depend on your keyboard driver; if it doesn't trigger, map Fn to F13 (e.g., via Karabiner) and set `shortcut: "<f13>"`.
+- External keyboards can use other single keys like `"<num_lock>"` in the shortcut list.
+- If a key isn't recognized, you can use `"<keycode:71>"`-style shortcuts on macOS (Num Lock/Clear is often 71); use Karabiner-Elements EventViewer to confirm.
+- Set `duck_audio: true` to temporarily lower system output volume while recording (macOS only).
 - Whisper runs entirely locally; choose larger models for accuracy at the cost of speed and CPU/GPU usage.

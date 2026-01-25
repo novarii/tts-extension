@@ -6,7 +6,7 @@ from pathlib import Path
 import typer
 
 from .actions import OutputActions
-from .audio import AudioRecorder, SystemSoundPlayer
+from .audio import AudioRecorder, SystemAudioDucker, SystemSoundPlayer
 from .config import AppConfig
 from .hotkey import HotkeyListener, PeriodicMonitor
 from .transcription import WhisperTranscriber
@@ -48,20 +48,67 @@ def listen(
     app_config = AppConfig.load(config)
 
     workflow = _build_workflow(app_config)
-    hotkey = HotkeyListener(app_config.shortcut, workflow.toggle_recording)
+    shortcuts = _normalize_shortcuts(app_config.shortcut)
+    if app_config.hotkey_mode == "hold":
+        listeners = [
+            HotkeyListener(
+                shortcut,
+                workflow.start_recording,
+                workflow.stop_recording,
+                mode="hold",
+            )
+            for shortcut in shortcuts
+        ]
+        prompt = (
+            f"Hold {_format_shortcuts(shortcuts)} to dictate, release to paste. "
+            "Ctrl+C to exit."
+        )
+    else:
+        listeners = [
+            HotkeyListener(
+                shortcut,
+                workflow.toggle_recording,
+                mode="toggle",
+            )
+            for shortcut in shortcuts
+        ]
+        prompt = (
+            f"Press {_format_shortcuts(shortcuts)} to toggle dictation. Ctrl+C to exit."
+        )
     monitor = PeriodicMonitor(1.0, workflow.stop_if_needed)
 
     monitor.start()
-    hotkey.start()
-    typer.echo(f"Press {app_config.shortcut} to dictate. Ctrl+C to exit.")
+    for listener in listeners:
+        listener.start()
+    typer.echo(prompt)
 
     try:
-        hotkey.join()
+        listeners[0].join()
     except KeyboardInterrupt:
         typer.echo("Stopping...")
     finally:
         monitor.stop()
-        hotkey.stop()
+        for listener in listeners:
+            listener.stop()
+
+
+def _normalize_shortcuts(value: str | list[str]) -> list[str]:
+    if isinstance(value, str):
+        shortcuts = [value]
+    else:
+        shortcuts = list(value)
+    shortcuts = [shortcut.strip() for shortcut in shortcuts if shortcut.strip()]
+    if not shortcuts:
+        raise ValueError("At least one shortcut must be configured.")
+    return shortcuts
+
+
+def _format_shortcuts(shortcuts: list[str]) -> str:
+    if len(shortcuts) == 1:
+        return shortcuts[0]
+    if len(shortcuts) == 2:
+        return f"{shortcuts[0]} or {shortcuts[1]}"
+    return ", ".join(shortcuts[:-1]) + f", or {shortcuts[-1]}"
 
 
 def _configure_logging(verbose: bool) -> None:
@@ -76,6 +123,7 @@ def _build_workflow(config: AppConfig) -> DictationWorkflow:
     recorder = AudioRecorder(sample_rate=config.sample_rate, channels=config.channels)
     transcriber = WhisperTranscriber(model_name=config.model_name, device=config.device)
     sound_player = SystemSoundPlayer()
+    audio_ducker = SystemAudioDucker(enabled=config.duck_audio)
     actions = OutputActions(
         use_clipboard=config.clipboard,
         auto_paste=config.auto_paste,
@@ -83,7 +131,14 @@ def _build_workflow(config: AppConfig) -> DictationWorkflow:
         log_transcripts=config.log_transcripts,
         log_path=config.log_path,
     )
-    return DictationWorkflow(config, recorder, transcriber, actions, sound_player=sound_player)
+    return DictationWorkflow(
+        config,
+        recorder,
+        transcriber,
+        actions,
+        sound_player=sound_player,
+        audio_ducker=audio_ducker,
+    )
 
 
 def run() -> None:

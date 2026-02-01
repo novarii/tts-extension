@@ -7,7 +7,10 @@ import threading
 import time
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .workflow import DictationWorkflow
 
 import numpy as np
 import sounddevice as sd
@@ -23,10 +26,12 @@ class AudioRecorder:
         sample_rate: int = 16000,
         channels: int = 1,
         dtype: str = "float32",
+        device: str | None = None,
     ) -> None:
         self.sample_rate = sample_rate
         self.channels = channels
         self.dtype = dtype
+        self.device = device
         self._stream: Optional[sd.InputStream] = None
         self._frames: list[np.ndarray] = []
         self._lock = threading.Lock()
@@ -42,6 +47,7 @@ class AudioRecorder:
             samplerate=self.sample_rate,
             channels=self.channels,
             dtype=self.dtype,
+            device=self.device,
             callback=self._on_audio,
         )
         self._stream.start()
@@ -197,3 +203,114 @@ class SystemAudioDucker:
             )
         except Exception:
             logger.debug("Failed to set system volume", exc_info=True)
+
+
+class AudioTriggerMonitor(threading.Thread):
+    """Monitor input volume and start/stop dictation based on audio activity."""
+
+    def __init__(
+        self,
+        workflow: "DictationWorkflow",
+        sample_rate: int,
+        channels: int,
+        device: str | None,
+        threshold: float,
+        start_seconds: float,
+        silence_seconds: float,
+    ) -> None:
+        super().__init__(daemon=True)
+        self.workflow = workflow
+        self.sample_rate = sample_rate
+        self.channels = channels
+        self.device = device
+        self.threshold = threshold
+        self.start_seconds = start_seconds
+        self.silence_seconds = silence_seconds
+        self._start_grace_seconds = min(0.2, silence_seconds)
+        self._stop_event = threading.Event()
+        self._ready = threading.Event()
+        self._error: Exception | None = None
+        self._stream: Optional[sd.InputStream] = None
+        self._lock = threading.Lock()
+        self._last_signal_time: float | None = None
+        self._signal_start_time: float | None = None
+
+    def start(self) -> None:
+        super().start()
+        self._ready.wait()
+        if self._error is not None:
+            raise self._error
+
+    def stop(self) -> None:
+        self._stop_event.set()
+
+    def run(self) -> None:
+        try:
+            self._stream = sd.InputStream(
+                samplerate=self.sample_rate,
+                channels=self.channels,
+                dtype="float32",
+                device=self.device,
+                callback=self._on_audio,
+            )
+            self._stream.start()
+        except Exception as exc:
+            self._error = exc
+            self._ready.set()
+            return
+        self._ready.set()
+        while not self._stop_event.is_set():
+            now = time.monotonic()
+            with self._lock:
+                last_signal_time = self._last_signal_time
+                signal_start_time = self._signal_start_time
+            signal_recent = (
+                last_signal_time is not None
+                and now - last_signal_time <= self.silence_seconds
+            )
+            signal_recent_for_start = (
+                last_signal_time is not None
+                and now - last_signal_time <= self._start_grace_seconds
+            )
+            if (
+                signal_recent_for_start
+                and signal_start_time is not None
+                and now - signal_start_time >= self.start_seconds
+                and not self.workflow.is_recording()
+            ):
+                self.workflow.start_recording()
+            if (
+                not signal_recent
+                and self.workflow.is_recording()
+                and last_signal_time is not None
+                and now - last_signal_time >= self.silence_seconds
+            ):
+                self.workflow.stop_recording()
+                self._clear_signal_state()
+            self._stop_event.wait(0.05)
+        if self._stream is not None:
+            self._stream.stop()
+            self._stream.close()
+            self._stream = None
+
+    def _on_audio(self, indata: np.ndarray, frames: int, _time, status) -> None:
+        if status:
+            logger.debug("Audio trigger status: %s", status)
+        rms = float(np.sqrt(np.mean(np.square(indata, dtype=np.float64))))
+        now = time.monotonic()
+        with self._lock:
+            if rms >= self.threshold:
+                if self._signal_start_time is None:
+                    self._signal_start_time = now
+                self._last_signal_time = now
+            else:
+                if (
+                    self._last_signal_time is not None
+                    and now - self._last_signal_time >= self.silence_seconds
+                ):
+                    self._signal_start_time = None
+
+    def _clear_signal_state(self) -> None:
+        with self._lock:
+            self._last_signal_time = None
+            self._signal_start_time = None

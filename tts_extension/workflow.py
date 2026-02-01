@@ -46,6 +46,10 @@ class DictationWorkflow:
                 return
             self._complete()
 
+    def is_recording(self) -> bool:
+        with self._lock:
+            return self._is_recording
+
     def toggle_recording(self) -> None:
         with self._lock:
             if not self._is_recording:

@@ -15,6 +15,11 @@ class AppConfig:
 
     shortcut: str | list[str] = "<fn>"
     hotkey_mode: str = "hold"
+    trigger_mode: str = "hotkey"
+    input_device: str | int | None = None
+    audio_trigger_threshold: float = 0.01
+    audio_trigger_start_seconds: float = 0.1
+    audio_trigger_silence_seconds: float = 0.6
     sample_rate: int = 16000
     channels: int = 1
     model_name: str = "small.en"
@@ -70,6 +75,20 @@ class AppConfig:
                 ]
             elif isinstance(shortcut_value, str):
                 normalized["shortcut"] = shortcut_value.strip()
+        if "trigger_mode" in normalized:
+            normalized["trigger_mode"] = str(normalized["trigger_mode"]).strip().lower()
+        if "input_device" in normalized:
+            value = normalized["input_device"]
+            if value is None:
+                normalized["input_device"] = None
+            elif isinstance(value, int):
+                normalized["input_device"] = value
+            else:
+                text = str(value).strip()
+                if text.isdigit():
+                    normalized["input_device"] = int(text)
+                else:
+                    normalized["input_device"] = text or None
         if "log_path" in normalized and not isinstance(normalized["log_path"], Path):
             normalized["log_path"] = Path(normalized["log_path"])
         if "duck_volume" in normalized and not isinstance(normalized["duck_volume"], int):
@@ -77,6 +96,16 @@ class AppConfig:
                 normalized["duck_volume"] = int(normalized["duck_volume"])
             except (TypeError, ValueError):
                 pass
+        for key in (
+            "audio_trigger_threshold",
+            "audio_trigger_start_seconds",
+            "audio_trigger_silence_seconds",
+        ):
+            if key in normalized and not isinstance(normalized[key], float):
+                try:
+                    normalized[key] = float(normalized[key])
+                except (TypeError, ValueError):
+                    pass
         return normalized
 
     def ensure_log_dir(self) -> None:

@@ -40,7 +40,7 @@ clipboard: true
 auto_paste: true
 sample_rate: 16000
 channels: 1
-max_recording_seconds: 120
+max_recording_seconds: 300
 duck_audio: false
 duck_volume: 20
 audio_trigger_threshold: 0.01

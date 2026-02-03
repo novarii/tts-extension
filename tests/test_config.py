@@ -14,6 +14,7 @@ def test_load_defaults(tmp_path: Path) -> None:
     assert config.audio_trigger_threshold == 0.01
     assert config.audio_trigger_start_seconds == 0.1
     assert config.audio_trigger_silence_seconds == 0.6
+    assert config.max_recording_seconds == 300.0
     assert config.model_name == "small.en"
 
 

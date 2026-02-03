@@ -8,13 +8,13 @@ model_name: "small.en"
 device: "auto"
 sample_rate: 16000
 channels: 1
-max_recording_seconds: 120
+max_recording_seconds: 300
 clipboard: true
 auto_paste: true
 type_characters: false
 duck_audio: true
 duck_volume: 10
-audio_trigger_threshold: 0.005
+audio_trigger_threshold: 0.001
 audio_trigger_start_seconds: 0.1
 audio_trigger_silence_seconds: 0.6
 log_transcripts: false

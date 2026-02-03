@@ -17,7 +17,7 @@ DeviceLiteral = Literal["cpu", "cuda", "mps"]
 class WhisperTranscriber:
     """Wrapper around OpenAI Whisper with device auto-selection."""
 
-    def __init__(self, model_name: str = "tiny.en", device: str = "auto") -> None:
+    def __init__(self, model_name: str = "small.en", device: str = "auto") -> None:
         self.model_name = model_name
         self.device = self._resolve_device(device)
         self._model = self._load_model()

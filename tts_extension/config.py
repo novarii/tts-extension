@@ -1,5 +1,5 @@
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -32,6 +32,7 @@ class AppConfig:
     duck_volume: int = 20
     log_transcripts: bool = False
     log_path: Path = Path("logs/transcripts.log")
+    dictionary: Dict[str, str] = field(default_factory=dict)
 
     @classmethod
     def load(cls, config_path: Optional[Path] = None) -> "AppConfig":
@@ -106,6 +107,10 @@ class AppConfig:
                     normalized[key] = float(normalized[key])
                 except (TypeError, ValueError):
                     pass
+        if "dictionary" in normalized:
+            value = normalized["dictionary"]
+            if not isinstance(value, dict):
+                normalized["dictionary"] = {}
         return normalized
 
     def ensure_log_dir(self) -> None:

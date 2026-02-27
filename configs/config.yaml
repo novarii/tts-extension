@@ -19,3 +19,10 @@ audio_trigger_start_seconds: 0.1
 audio_trigger_silence_seconds: 0.6
 log_transcripts: false
 log_path: "logs/transcripts.log"
+
+# Dictionary: map misheard Whisper terms to their correct forms.
+# Keys are case-insensitive. Add your own entries below.
+dictionary:
+  # "pie torch": "PyTorch"
+  # "nump eye": "NumPy"
+  # "kubernetes": "Kubernetes"

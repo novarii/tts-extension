@@ -8,6 +8,7 @@ import numpy as np
 from .actions import OutputActions
 from .audio import AudioRecorder, SystemAudioDucker, SystemSoundPlayer
 from .config import AppConfig
+from .corrections import apply_corrections
 from .transcription import WhisperTranscriber
 
 logger = logging.getLogger(__name__)
@@ -78,6 +79,7 @@ class DictationWorkflow:
         if self.sound_player:
             self.sound_player.play_transcribe()
         text = self.transcriber.transcribe(audio, self.config.sample_rate)
+        text = apply_corrections(text, self.config.dictionary)
         self.actions.deliver(text)
 
     def stop_if_needed(self) -> None:

@@ -32,6 +32,7 @@ class AppConfig:
     duck_volume: int = 20
     log_transcripts: bool = False
     log_path: Path = Path("logs/transcripts.log")
+    prompt_vocabulary: list[str] = field(default_factory=list)
     dictionary: Dict[str, str] = field(default_factory=dict)
 
     @classmethod

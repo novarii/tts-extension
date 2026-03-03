@@ -2,7 +2,7 @@ shortcut:
   - "<fn>"
   - "<num_lock>"
 hotkey_mode: "hold"
-trigger_mode: "audio"
+trigger_mode: "hotkey"
 input_device: 1
 model_name: "small.en"
 device: "auto"
@@ -19,6 +19,34 @@ audio_trigger_start_seconds: 0.1
 audio_trigger_silence_seconds: 0.6
 log_transcripts: false
 log_path: "logs/transcripts.log"
+
+# Technical terms to prime Whisper with for better recognition.
+# Add your own terms below.
+prompt_vocabulary:
+  - Vercel
+  - Claude
+  - Anthropic
+  - Next.js
+  - TypeScript
+  - JavaScript
+  - Python
+  - Kubernetes
+  - Docker
+  - GitHub
+  - PyTorch
+  - NumPy
+  - React
+  - Node.js
+  - Supabase
+  - Tailwind
+  - Prisma
+  - PostgreSQL
+  - Redis
+  - GraphQL
+  - REST API
+  - OAuth
+  - JWT
+  - WebSocket
 
 # Dictionary: map misheard Whisper terms to their correct forms.
 # Keys are case-insensitive. Add your own entries below.

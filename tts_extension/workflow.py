@@ -78,7 +78,8 @@ class DictationWorkflow:
             return
         if self.sound_player:
             self.sound_player.play_transcribe()
-        text = self.transcriber.transcribe(audio, self.config.sample_rate)
+        prompt = ", ".join(self.config.prompt_vocabulary) if self.config.prompt_vocabulary else None
+        text = self.transcriber.transcribe(audio, self.config.sample_rate, initial_prompt=prompt)
         text = apply_corrections(text, self.config.dictionary)
         self.actions.deliver(text)
 

@@ -1,55 +1,67 @@
 from __future__ import annotations
 
 import logging
-from functools import lru_cache
 from typing import Literal
 
 import numpy as np
-import torch
-import whisper
+from faster_whisper import WhisperModel
 
 logger = logging.getLogger(__name__)
 
 
-DeviceLiteral = Literal["cpu", "cuda", "mps"]
+DeviceLiteral = Literal["cpu", "cuda"]
 
 
 class WhisperTranscriber:
-    """Wrapper around OpenAI Whisper with device auto-selection."""
+    """Wrapper around faster-whisper with device auto-selection."""
 
     def __init__(self, model_name: str = "small.en", device: str = "auto") -> None:
         self.model_name = model_name
         self.device = self._resolve_device(device)
-        self._model = self._load_model()
-        logger.info("Loaded Whisper model %s on %s", model_name, self.device)
+        self._compute_type = "float16" if self.device == "cuda" else "int8"
+        self._model = WhisperModel(
+            self.model_name,
+            device=self.device,
+            compute_type=self._compute_type,
+        )
+        logger.info(
+            "Loaded Whisper model %s on %s (%s)",
+            model_name,
+            self.device,
+            self._compute_type,
+        )
 
-    def transcribe(self, audio: np.ndarray, sample_rate: int) -> str:
+    def transcribe(
+        self, audio: np.ndarray, sample_rate: int, initial_prompt: str | None = None
+    ) -> str:
         if audio.size == 0:
             return ""
 
         if audio.dtype != np.float32:
             audio = audio.astype(np.float32)
 
-        result = self._model.transcribe(
+        segments, _info = self._model.transcribe(
             audio,
             language="en",
-            fp16=self.device == "cuda",
+            beam_size=5,
             temperature=0.0,
+            initial_prompt=initial_prompt,
         )
-        text = (result.get("text") or "").strip()
+        text = " ".join(segment.text.strip() for segment in segments).strip()
         logger.info("Transcription complete (%d samples)", audio.size)
         return text
 
     @staticmethod
     def _resolve_device(device: str) -> DeviceLiteral:
-        if device != "auto":
-            return device  # type: ignore[return-value]
-        if torch.cuda.is_available():
-            return "cuda"
-        if getattr(torch.backends, "mps", None) and torch.backends.mps.is_available():
-            return "mps"  # type: ignore[return-value]
-        return "cpu"
+        if device == "auto":
+            try:
+                import ctranslate2
 
-    @lru_cache(maxsize=1)
-    def _load_model(self):
-        return whisper.load_model(self.model_name, device=self.device)
+                if "cuda" in ctranslate2.get_supported_compute_types("cuda"):
+                    return "cuda"
+            except Exception:
+                pass
+            return "cpu"
+        if device in ("mps", "cpu"):
+            return "cpu"
+        return device  # type: ignore[return-value]

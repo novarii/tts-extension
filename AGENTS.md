@@ -5,7 +5,7 @@ Keep user-facing code under `tts_extension/`, with submodules for `config.py`, `
 
 ## Build, Test, and Development Commands
 - `uv init --app --package tts-extension`: bootstrap a CLI-ready project in the current directory (replace flags if you need a library layout).
-- `uv add whisper torch sounddevice pynput pyperclip pytest`: install runtime and dev dependencies; add `--dev` for test-only packages.
+- `uv add faster-whisper sounddevice pynput pyperclip pytest`: install runtime and dev dependencies; add `--dev` for test-only packages.
 - `uv run tts-extension listen`: start the hotkey listener and transcription workflow locally; useful for manual verification.
 - `uv run pytest`: execute automated tests, including config parsing, audio mocks, and transcription adapters.
 - `uv tree` / `uv lock --upgrade`: inspect dependency graph and refresh lockfiles as needed.

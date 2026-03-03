@@ -1,6 +1,6 @@
 ## TTS Extension
 
-Push-to-talk speech-to-text helper for macOS that records locally, runs OpenAI Whisper on-device, and pastes the transcript into the focused text field.
+Push-to-talk speech-to-text helper for macOS that records locally, runs faster-whisper on-device, and pastes the transcript into the focused text field.
 
 ### Requirements
 - Python 3.12+
@@ -15,7 +15,7 @@ uv sync                               # create/update the virtual environment
 
 Install runtime + dev dependencies:
 ```bash
-uv add whisper torch sounddevice pynput pyperclip pyyaml typer numpy soundfile
+uv add faster-whisper sounddevice pynput pyperclip pyyaml typer numpy
 uv add --dev pytest
 ```
 
